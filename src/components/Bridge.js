@@ -21,7 +21,7 @@ import rightImage from '../assets/images/pattern-2.png'
 export class Bridge extends React.Component {
   state = {
     reverse: false,
-    homeCurrency: 'POA',
+    homeCurrency: 'BancorOnPoa',
     amount:'',
     modalData: {},
     confirmationData: {},
@@ -82,16 +82,15 @@ export class Bridge extends React.Component {
       alertStore.pushError(`The amount is above current daily limit.\nThe max deposit today: ${homeStore.maxCurrentDeposit} ${homeCurrency}`)
       return
     }
-    if(isGreaterThan(amount, web3Store.defaultAccount.homeBalance)){
+    if(isGreaterThan(amount, homeStore.userBalance)){
       alertStore.pushError("Insufficient balance")
     } else {
       try {
-        alertStore.setLoading(true)
-        return txStore.doSend({
+        // alertStore.setLoading(true)
+        return txStore.erc677transferAndCall({
         to: homeStore.HOME_BRIDGE_ADDRESS,
         from: web3Store.defaultAccount.address,
-        value: Web3Utils.toHex(Web3Utils.toWei(amount)),
-        data: '0x'
+        value: Web3Utils.toWei(amount),
       })} catch (e) {
         console.error(e)
       }
@@ -105,27 +104,27 @@ export class Bridge extends React.Component {
       swal("Error", `Please switch metamask network to ${web3Store.foreignNet.name}`, "error")
       return
     }
-    if(isLessThan(amount, foreignStore.minPerTx)){
-      alertStore.pushError(`The amount is less than minimum amount per transaction.\nThe min per transaction is: ${foreignStore.minPerTx} ${foreignStore.symbol}`)
-      return
-    }
-    if(isGreaterThan(amount, foreignStore.maxPerTx)){
-      alertStore.pushError(`The amount is above maximum amount per transaction.\nThe max per transaction is: ${foreignStore.maxPerTx} ${foreignStore.symbol}`)
-      return
-    }
-    if(isGreaterThan(amount, foreignStore.maxCurrentDeposit)){
-      alertStore.pushError(`The amount is above current daily limit.\nThe max withdrawal today: ${foreignStore.maxCurrentDeposit} ${foreignStore.symbol}`)
-      return
-    }
+    // if(isLessThan(amount, foreignStore.minPerTx)){
+    //   alertStore.pushError(`The amount is less than minimum amount per transaction.\nThe min per transaction is: ${foreignStore.minPerTx} ${foreignStore.symbol}`)
+    //   return
+    // }
+    // if(isGreaterThan(amount, foreignStore.maxPerTx)){
+    //   alertStore.pushError(`The amount is above maximum amount per transaction.\nThe max per transaction is: ${foreignStore.maxPerTx} ${foreignStore.symbol}`)
+    //   return
+    // }
+    // if(isGreaterThan(amount, foreignStore.maxCurrentDeposit)){
+    //   alertStore.pushError(`The amount is above current daily limit.\nThe max withdrawal today: ${foreignStore.maxCurrentDeposit} ${foreignStore.symbol}`)
+    //   return
+    // }
     if(isGreaterThan(amount, foreignStore.balance)){
       alertStore.pushError(`Insufficient token balance. Your balance is ${foreignStore.balance} ${foreignStore.symbol}`)
     } else {
       try {
-        alertStore.setLoading(true)
-        return await txStore.erc677transferAndCall({
+        // alertStore.setLoading(true)
+        return await txStore.erc20transfer({
         to: foreignStore.FOREIGN_BRIDGE_ADDRESS,
         from: web3Store.defaultAccount.address,
-        value: Web3Utils.toHex(Web3Utils.toWei(amount))
+        value: Web3Utils.toWei(amount)
       })} catch(e) {
         console.error(e)
       }
@@ -194,7 +193,6 @@ export class Bridge extends React.Component {
   loadHomeDetails = () => {
     const { web3Store, homeStore } = this.props.RootStore
     const { homeCurrency } = this.state
-
     const modalData = {
       isHome: true,
       networkData: web3Store.homeNet,
@@ -206,7 +204,7 @@ export class Bridge extends React.Component {
       maxPerTx: homeStore.maxPerTx,
       minPerTx: homeStore.minPerTx,
       totalBalance: homeStore.balance,
-      balance: web3Store.defaultAccount.homeBalance
+      balance: homeStore.userBalance
     }
 
     this.setState({ modalData, showModal: true })
@@ -236,13 +234,13 @@ export class Bridge extends React.Component {
   }
 
   render() {
-    const { web3Store, foreignStore } = this.props.RootStore
+    const { web3Store, foreignStore, homeStore } = this.props.RootStore
     const { reverse, homeCurrency, showModal, modalData, showConfirmation, confirmationData } = this.state
     const formCurrency = reverse ? foreignStore.symbol : homeCurrency
 
     if(showModal && Object.keys(modalData).length !== 0) {
-      if(modalData.isHome && modalData.balance !== web3Store.defaultAccount.homeBalance) {
-        modalData.balance = web3Store.defaultAccount.homeBalance
+      if(modalData.isHome && modalData.balance !== homeStore.userBalance) {
+        modalData.balance = homeStore.userBalance
       } else if(!modalData.isHome && modalData.balance !== foreignStore.balance) {
         modalData.balance= foreignStore.balance
       }
@@ -267,7 +265,7 @@ export class Bridge extends React.Component {
                   showModal={reverse ? this.loadForeignDetails : this.loadHomeDetails}
                   networkData={reverse ? web3Store.foreignNet : web3Store.homeNet}
                   currency={reverse ? foreignStore.symbol : homeCurrency}
-                  balance={reverse ? foreignStore.balance : web3Store.defaultAccount.homeBalance} />
+                  balance={reverse ? foreignStore.balance : homeStore.userBalance} />
                 <BridgeForm
                   displayArrow={!web3Store.metamaskNotSetted}
                   reverse={reverse}
@@ -280,7 +278,7 @@ export class Bridge extends React.Component {
                   showModal={reverse ? this.loadHomeDetails : this.loadForeignDetails}
                   networkData={reverse ? web3Store.homeNet : web3Store.foreignNet}
                   currency={reverse ? homeCurrency : foreignStore.symbol}
-                  balance={reverse ? web3Store.defaultAccount.homeBalance : foreignStore.balance} />
+                  balance={reverse ? homeStore.userBalance : foreignStore.balance} />
               </div>
             </div>
             <div className="right-image-wrapper">

@@ -40,6 +40,7 @@ class ForeignStore {
   foreignBridge = {};
   tokenContract = {}
   FOREIGN_BRIDGE_ADDRESS = process.env.REACT_APP_FOREIGN_BRIDGE_ADDRESS;
+  ERC20_ADDRESS = process.env.REACT_APP_ERC20_ADDRESS;
 
   constructor (rootStore) {
     this.web3Store = rootStore.web3Store;
@@ -54,16 +55,16 @@ class ForeignStore {
     this.foreignBridge = new this.foreignWeb3.eth.Contract(FOREIGN_ABI, this.FOREIGN_BRIDGE_ADDRESS);
     await this.getBlockNumber()
     await this.getTokenInfo()
-    this.getMinPerTxLimit()
-    this.getMaxPerTxLimit()
+    // this.getMinPerTxLimit()
+    // this.getMaxPerTxLimit()
     this.getEvents()
     this.getTokenBalance()
-    this.getCurrentLimit()
+    // this.getCurrentLimit()
     setInterval(() => {
       this.getBlockNumber()
       this.getEvents()
       this.getTokenBalance()
-      this.getCurrentLimit()
+      // this.getCurrentLimit()
     }, 5000)
   }
 
@@ -97,7 +98,7 @@ class ForeignStore {
   @action
   async getTokenInfo(){
     try {
-      this.tokenAddress = await getErc677TokenAddress(this.foreignBridge)
+      this.tokenAddress = this.ERC20_ADDRESS;
       this.tokenContract = new this.foreignWeb3.eth.Contract(ERC677_ABI, this.tokenAddress);
       this.symbol = await getSymbol(this.tokenContract)
     } catch(e) {

@@ -2,10 +2,11 @@ import { action, observable } from 'mobx';
 import HOME_ABI from '../abis/HomeBridge.json';
 import BRIDGE_VALIDATORS_ABI from '../abis/BridgeValidators.json'
 import { getBlockNumber, getBalance, getExplorerUrl } from './utils/web3'
-import { getMaxPerTxLimit, getMinPerTxLimit, getCurrentLimit, getPastEvents } from './utils/contract'
+import { getMaxPerTxLimit, getMinPerTxLimit, getCurrentLimit, getPastEvents, getTotalSupply, getBalanceOf} from './utils/contract'
 import { removePendingTransaction } from './utils/testUtils'
 import Web3Utils from 'web3-utils'
 import BN from 'bignumber.js'
+import ERC677_ABI from '../abis/ERC677.json';
 
 class HomeStore {
   @observable state = null;
@@ -22,6 +23,7 @@ class HomeStore {
   @observable requiredSignatures = 0
   @observable dailyLimit = 0
   @observable totalSpentPerDay = 0
+  @observable userBalance = 0
   @observable statistics = {
     deposits: 0,
     depositsValue: BN(0),
@@ -34,6 +36,7 @@ class HomeStore {
   filteredBlockNumber = 0
   homeBridge = {};
   HOME_BRIDGE_ADDRESS = process.env.REACT_APP_HOME_BRIDGE_ADDRESS;
+  BRIDGE_TOKEN_ADDRESS = process.env.REACT_APP_BRIDGEBLE_TOKEN_ADDRESS;
 
   constructor (rootStore) {
     this.homeWeb3 = rootStore.web3Store.homeWeb3
@@ -46,16 +49,17 @@ class HomeStore {
 
   async setHome(){
     this.homeBridge = new this.homeWeb3.eth.Contract(HOME_ABI, this.HOME_BRIDGE_ADDRESS);
+    this.tokenBridge = new this.homeWeb3.eth.Contract(ERC677_ABI, this.BRIDGE_TOKEN_ADDRESS);
     await this.getBlockNumber()
     this.getMinPerTxLimit()
     this.getMaxPerTxLimit()
-    this.getEvents()
+    // this.getEvents()
     this.getBalance()
     this.getCurrentLimit()
-    this.getValidators()
-    this.getStatistics()
+    // this.getValidators()
+    // this.getStatistics()
     setInterval(() => {
-      this.getEvents()
+      // this.getEvents()
       this.getBalance()
       this.getCurrentLimit()
       this.getBlockNumber()
@@ -92,7 +96,8 @@ class HomeStore {
   @action
   async getBalance() {
     try {
-      this.balance = await getBalance(this.homeWeb3, this.HOME_BRIDGE_ADDRESS)
+      this.balance = await getTotalSupply(this.tokenBridge)
+      this.userBalance = await getBalanceOf(this.tokenBridge, this.web3Store.defaultAccount.address)
     } catch(e) {
       console.error(e)
       this.errors.push(e)

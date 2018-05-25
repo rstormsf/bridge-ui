@@ -55,10 +55,10 @@ class TxStore {
     try {
       return this.web3Store.getWeb3Promise.then(async () => {
         if(this.web3Store.defaultAccount.address){
-          const data = await this.foreignStore.tokenContract.methods.transferAndCall(
+          const data = await this.homeStore.tokenBridge.methods.transferAndCall(
             to, value, '0x00'
           ).encodeABI()
-          return this.doSend({to: this.foreignStore.tokenAddress, from, value: '0x00', data})
+          return this.doSend({to: this.homeStore.BRIDGE_TOKEN_ADDRESS, from, value: '0x00', data})
         } else {
           this.alertStore.pushError('Please unlock metamask');
         }
@@ -66,7 +66,25 @@ class TxStore {
     } catch(e) {
       this.alertStore.pushError(e);
     }
+  }
 
+  @action
+  async erc20transfer({to, from, value}){
+    try {
+      return this.web3Store.getWeb3Promise.then(async () => {
+        if(this.web3Store.defaultAccount.address){
+
+          const data = await this.foreignStore.tokenContract.methods.transfer(
+            to, value
+          ).encodeABI({from: this.web3Store.defaultAccount.address})
+          return this.doSend({to: this.foreignStore.tokenAddress, from, value: '0x', data})
+        } else {
+          this.alertStore.pushError('Please unlock metamask');
+        }
+      })
+    } catch(e) {
+      this.alertStore.pushError(e);
+    }
   }
 
   async getTxReceipt(hash){
